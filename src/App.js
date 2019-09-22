@@ -15,6 +15,9 @@ function App() {
   const [expenses, setExpenses] = useState(initialExpenses);
   const [charge, setCharge] = useState("");
   const [amount, setAmount] = useState("");
+  const [alert, setAlert] = useState({ show: false });
+  const [edit, setEdit] = useState(false);
+  const [id, setId] = useState(0);
 
   //Functionality
   const handleCharge = e => {
@@ -24,24 +27,66 @@ function App() {
     setAmount(e.target.value);
   };
 
+  //handle alert
+  const handleAlert = ({ type, text }) => {
+    setAlert({ show: true, type, text });
+    setTimeout(() => {
+      setAlert({ show: false });
+    }, 3000);
+  };
+
   const handleSubmit = e => {
     e.preventDefault();
     if (charge !== "" && amount > 0) {
-      const singleExpense = {
-        id: uuid(),
-        charge,
-        amount
-      };
-      setExpenses(expenses.concat(singleExpense));
+      if (edit) {
+        let tempExpenses = expenses.map(item =>
+          item.id === id ? { ...item, amount, charge } : item
+        );
+        setExpenses(tempExpenses);
+        setEdit(false);
+        setId(0);
+      } else {
+        const singleExpense = {
+          id: uuid(),
+          charge,
+          amount
+        };
+        setExpenses(expenses.concat(singleExpense));
+        handleAlert({ type: "success", text: "item added successfully" });
+      }
       setAmount("");
       setCharge("");
     } else {
       //handle error validation
+      handleAlert({
+        type: "danger",
+        text: "charge can't be empty and amount must be greater than 0"
+      });
     }
   };
+  //clear items
+  const clearItems = () => {
+    setExpenses([]);
+  };
+
+  //handle delete item
+  const handleDelete = id => {
+    let tempExpenses = expenses.filter(expenseItem => expenseItem.id !== id);
+    setExpenses(tempExpenses);
+    setAlert({ type: "danger", text: "item deleted successfully" });
+  };
+  //handle edit item
+  const handleEdit = id => {
+    let tempExpense = expenses.find(item => item.id === id);
+    setAmount(tempExpense.amount);
+    setCharge(tempExpense.charge);
+    setEdit(true);
+    setId(tempExpense.id);
+  };
+
   return (
     <>
-      <Alert />
+      {alert.show && <Alert type={alert.type} text={alert.text} />}
       <h1>budget calculator</h1>
       <main className="App">
         <ExpenseForm
@@ -50,8 +95,14 @@ function App() {
           handleCharge={handleCharge}
           handleAmount={handleAmount}
           handleSubmit={handleSubmit}
+          edit={edit}
         />
-        <ExpenseList expenses={expenses} />
+        <ExpenseList
+          expenses={expenses}
+          handleDelete={handleDelete}
+          handleEdit={handleEdit}
+          clearItems={clearItems}
+        />
       </main>
       <h1>
         total spending:{" "}
